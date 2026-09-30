@@ -4,16 +4,16 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Create Next App 기본 페이지와 기본 이미지 참조를 방명록 레이아웃으로 교체했고, 페이지 메타데이터(제목, 설명)도 방명록에 맞게 바꿨다
-- [ ] 헤더에 "강동헌 · 202204169"가 항상 표시된다
-- [ ] `npm run db:init`이 `DATABASE_URL`에 연결해 `entries` 테이블을 만든다. 여러 번 실행해도 안전하다
-- [ ] 방명록 모듈이 주입받은 `EntryStore`로 글 목록을 작성 시각 최신순으로 돌려준다. 반환값에 비밀번호 해시가 없다
-- [ ] Neon 기반 `EntryStore`가 파라미터 바인딩 SQL로 조회한다
-- [ ] 페이지는 요청마다 새로 렌더링되고, 작성 시각은 `Asia/Seoul` 기준 `YYYY-MM-DD HH:mm`으로 서버에서 포맷된다
-- [ ] 메시지의 줄바꿈이 유지되고, HTML은 글자 그대로 표시된다
-- [ ] 글이 없으면 빈 목록 안내가 표시된다
-- [ ] 모바일 폭에서 가로 스크롤이 없고, 다크 모드를 지원한다
-- [ ] Vitest와 `npm test`를 설정했고, 메모리 `EntryStore`로 "목록은 작성 시각 최신순" 테스트가 통과한다
-- [ ] `npm run lint`와 `npm run build`가 통과한다
+- [x] Create Next App 기본 페이지와 기본 이미지 참조를 방명록 레이아웃으로 교체했고, 페이지 메타데이터(제목, 설명)도 방명록에 맞게 바꿨다
+- [x] 헤더에 "강동헌 · 202204169"가 항상 표시된다
+- [x] `npm run db:init`이 `DATABASE_URL`에 연결해 `entries` 테이블을 만든다. 여러 번 실행해도 안전하다
+- [x] 방명록 모듈이 주입받은 `EntryStore`로 글 목록을 작성 시각 최신순으로 돌려준다. 반환값에 비밀번호 해시가 없다
+- [x] Neon 기반 `EntryStore`가 파라미터 바인딩 SQL로 조회한다
+- [x] 페이지는 요청마다 새로 렌더링되고, 작성 시각은 `Asia/Seoul` 기준 `YYYY-MM-DD HH:mm`으로 서버에서 포맷된다
+- [x] 메시지의 줄바꿈이 유지되고, HTML은 글자 그대로 표시된다
+- [x] 글이 없으면 빈 목록 안내가 표시된다
+- [x] 모바일 폭에서 가로 스크롤이 없고, 다크 모드를 지원한다
+- [x] Vitest와 `npm test`를 설정했고, 메모리 `EntryStore`로 "목록은 작성 시각 최신순" 테스트가 통과한다
+- [x] `npm run lint`와 `npm run build`가 통과한다
