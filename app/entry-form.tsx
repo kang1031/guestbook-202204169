@@ -54,7 +54,7 @@ export function EntryForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="수정·삭제할 때 필요해요 (4자 이상)"
-            autoComplete="new-password"
+            autoComplete="off"
             aria-invalid={!!errors.password}
             className={inputClass}
           />

@@ -1,3 +1,4 @@
+import "server-only";
 import { createGuestbook, type Guestbook } from "./guestbook";
 import { createNeonEntryStore } from "./neon-store";
 

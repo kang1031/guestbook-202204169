@@ -20,7 +20,7 @@ export type EntryView = {
   updatedAtLabel: string | null;
 };
 
-type Mode = "view" | "edit" | "delete";
+type Mode = "view" | "edit" | "delete" | "gone";
 
 const WRONG_PASSWORD_EDIT = "비밀번호가 일치하지 않습니다. 수정이 거부되었어요.";
 const WRONG_PASSWORD_DELETE = "비밀번호가 일치하지 않습니다. 삭제가 거부되었어요.";
@@ -28,6 +28,16 @@ const NOT_FOUND = "이미 삭제된 글입니다. 잠시 후 목록을 새로 �
 
 export function EntryCard({ entry }: { entry: EntryView }) {
   const [mode, setMode] = useState<Mode>("view");
+  const router = useRouter();
+
+  // Lives on the card, not the form, so cancelling cannot stop the list refresh.
+  useEffect(() => {
+    if (mode !== "gone") return;
+    const timer = setTimeout(() => router.refresh(), 2000);
+    return () => clearTimeout(timer);
+  }, [mode, router]);
+
+  const markGone = () => setMode("gone");
 
   return (
     <li className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -40,14 +50,18 @@ export function EntryCard({ entry }: { entry: EntryView }) {
       </div>
 
       {mode === "edit" ? (
-        <EditForm entry={entry} onDone={() => setMode("view")} />
+        <EditForm entry={entry} onDone={() => setMode("view")} onGone={markGone} />
       ) : (
         <>
           <p className="mt-2 whitespace-pre-wrap break-words text-zinc-700 dark:text-zinc-300">
             {entry.message}
           </p>
-          {mode === "delete" ? (
-            <DeleteForm entry={entry} onCancel={() => setMode("view")} />
+          {mode === "gone" ? (
+            <p role="alert" className={`mt-3 ${errorTextClass}`}>
+              {NOT_FOUND}
+            </p>
+          ) : mode === "delete" ? (
+            <DeleteForm entry={entry} onCancel={() => setMode("view")} onGone={markGone} />
           ) : (
             <div className="mt-3 flex justify-end gap-1">
               <button type="button" onClick={() => setMode("edit")} className={ghostButtonClass}>
@@ -64,17 +78,9 @@ export function EntryCard({ entry }: { entry: EntryView }) {
   );
 }
 
-/** Refreshes the list shortly after an Entry turned out to be already deleted. */
-function useRefreshWhenGone(state: ActionResult | null) {
-  const router = useRouter();
-  useEffect(() => {
-    if (state?.status !== "not-found") return;
-    const timer = setTimeout(() => router.refresh(), 2000);
-    return () => clearTimeout(timer);
-  }, [state, router]);
-}
+type FormProps = { entry: EntryView; onGone: () => void };
 
-function EditForm({ entry, onDone }: { entry: EntryView; onDone: () => void }) {
+function EditForm({ entry, onDone, onGone }: FormProps & { onDone: () => void }) {
   const [message, setMessage] = useState(entry.message);
   const [password, setPassword] = useState("");
 
@@ -82,11 +88,11 @@ function EditForm({ entry, onDone }: { entry: EntryView; onDone: () => void }) {
     async (_: ActionResult | null, formData: FormData) => {
       const result = await editMessageAction(formData);
       if (result.status === "ok") onDone();
+      if (result.status === "not-found") onGone();
       return result;
     },
     null,
   );
-  useRefreshWhenGone(state);
 
   const errors = state?.status === "invalid" ? state.errors : {};
 
@@ -120,14 +126,17 @@ function EditForm({ entry, onDone }: { entry: EntryView; onDone: () => void }) {
   );
 }
 
-function DeleteForm({ entry, onCancel }: { entry: EntryView; onCancel: () => void }) {
+function DeleteForm({ entry, onCancel, onGone }: FormProps & { onCancel: () => void }) {
   const [password, setPassword] = useState("");
   // On success the Entry leaves the list, unmounting this form, so no state to reset.
   const [state, formAction, pending] = useActionState(
-    (_: ActionResult | null, formData: FormData) => deleteEntryAction(formData),
+    async (_: ActionResult | null, formData: FormData) => {
+      const result = await deleteEntryAction(formData);
+      if (result.status === "not-found") onGone();
+      return result;
+    },
     null,
   );
-  useRefreshWhenGone(state);
 
   return (
     <form
@@ -179,20 +188,12 @@ function PasswordField({
   );
 }
 
+/** "Already deleted" is shown by the card itself, so a form only reports a wrong password. */
 function Refusal({ state, wrongPassword }: { state: ActionResult | null; wrongPassword: string }) {
-  if (state?.status === "wrong-password") {
-    return (
-      <p role="alert" className={errorTextClass}>
-        {wrongPassword}
-      </p>
-    );
-  }
-  if (state?.status === "not-found") {
-    return (
-      <p role="alert" className={errorTextClass}>
-        {NOT_FOUND}
-      </p>
-    );
-  }
-  return null;
+  if (state?.status !== "wrong-password") return null;
+  return (
+    <p role="alert" className={errorTextClass}>
+      {wrongPassword}
+    </p>
+  );
 }

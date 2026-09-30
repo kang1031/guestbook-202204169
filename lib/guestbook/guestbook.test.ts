@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createGuestbook } from "./guestbook";
+import { createGuestbook, type Guestbook } from "./guestbook";
 import { createMemoryEntryStore } from "./memory-store";
+import type { EntryStore } from "./types";
 
 function setup() {
   let now = new Date("2026-09-30T05:00:00Z");
@@ -97,7 +98,7 @@ describe("writing an entry", () => {
   });
 });
 
-async function writeEntry(guestbook: ReturnType<typeof setup>["guestbook"], input = valid) {
+async function writeEntry(guestbook: Guestbook, input = valid) {
   const result = await guestbook.createEntry(input);
   if (result.status !== "ok") throw new Error("setup entry was rejected");
   return result.entry;
@@ -223,6 +224,40 @@ describe("deleting an entry", () => {
     await guestbook.deleteEntry({ id: entry.id, password: "1234" });
 
     const result = await guestbook.editMessage({ id: entry.id, message: "x", password: "1234" });
+
+    expect(result.status).toBe("not-found");
+  });
+});
+
+describe("an entry deleted while its password is being checked", () => {
+  function setupWithRace() {
+    const store = createMemoryEntryStore();
+    // Another request deletes the Entry right after its password hash is read.
+    const racingStore: EntryStore = {
+      ...store,
+      async findPasswordHash(id) {
+        const hash = await store.findPasswordHash(id);
+        await store.delete(id);
+        return hash;
+      },
+    };
+    return createGuestbook({ store: racingStore });
+  }
+
+  it("reports not-found when editing", async () => {
+    const guestbook = setupWithRace();
+    const entry = await writeEntry(guestbook);
+
+    const result = await guestbook.editMessage({ id: entry.id, message: "x", password: "1234" });
+
+    expect(result.status).toBe("not-found");
+  });
+
+  it("reports not-found when deleting", async () => {
+    const guestbook = setupWithRace();
+    const entry = await writeEntry(guestbook);
+
+    const result = await guestbook.deleteEntry({ id: entry.id, password: "1234" });
 
     expect(result.status).toBe("not-found");
   });
