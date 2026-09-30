@@ -1,6 +1,6 @@
 # Spec: 미니 방명록
 
-Status: ready-for-agent
+Status: done
 
 ## Problem Statement
 
