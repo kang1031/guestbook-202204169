@@ -41,3 +41,12 @@ export async function editMessageAction(formData: FormData): Promise<ActionResul
   if (result.status === "ok") revalidatePath("/");
   return result;
 }
+
+export async function deleteEntryAction(formData: FormData): Promise<ActionResult> {
+  const result = await getGuestbook().deleteEntry({
+    id: entryId(formData),
+    password: text(formData, "password"),
+  });
+  if (result.status === "ok") revalidatePath("/");
+  return result;
+}

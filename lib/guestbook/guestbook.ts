@@ -18,6 +18,9 @@ export type CreateEntryResult = { status: "ok"; entry: Entry } | Invalid;
 export type EditMessageInput = { id: number; message: string; password: string };
 export type EditMessageResult = { status: "ok" } | Invalid | WrongPassword | NotFound;
 
+export type DeleteEntryInput = { id: number; password: string };
+export type DeleteEntryResult = { status: "ok" } | WrongPassword | NotFound;
+
 export function createGuestbook({
   store,
   now = () => new Date(),
@@ -70,6 +73,15 @@ export function createGuestbook({
       // The Entry may have been deleted between the check and the update.
       const updated = await store.updateMessage(input.id, checked.value.message, now());
       return updated ? { status: "ok" } : { status: "not-found" };
+    },
+
+    /** Permanently removes an Entry, only when the Entry password matches. */
+    async deleteEntry(input: DeleteEntryInput): Promise<DeleteEntryResult> {
+      const denied = await checkPassword(input.id, input.password);
+      if (denied) return denied;
+
+      const deleted = await store.delete(input.id);
+      return deleted ? { status: "ok" } : { status: "not-found" };
     },
   };
 }

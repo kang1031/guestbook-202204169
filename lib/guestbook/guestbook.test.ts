@@ -175,6 +175,59 @@ describe("editing a message", () => {
   });
 });
 
+describe("deleting an entry", () => {
+  it("removes the entry when the password matches", async () => {
+    const { guestbook } = setup();
+    const entry = await writeEntry(guestbook);
+
+    const result = await guestbook.deleteEntry({ id: entry.id, password: "1234" });
+
+    expect(result.status).toBe("ok");
+    expect(await guestbook.listEntries()).toEqual([]);
+  });
+
+  it("refuses a wrong password and keeps the entry", async () => {
+    const { guestbook } = setup();
+    const entry = await writeEntry(guestbook);
+
+    const result = await guestbook.deleteEntry({ id: entry.id, password: "0000" });
+
+    expect(result.status).toBe("wrong-password");
+    expect(await guestbook.listEntries()).toHaveLength(1);
+  });
+
+  it("does not accept the password of another entry with the same author name", async () => {
+    const { guestbook } = setup();
+    const mine = await writeEntry(guestbook, { ...valid, password: "mine-pw" });
+    await writeEntry(guestbook, { ...valid, password: "other-pw" });
+
+    const result = await guestbook.deleteEntry({ id: mine.id, password: "other-pw" });
+
+    expect(result.status).toBe("wrong-password");
+    expect(await guestbook.listEntries()).toHaveLength(2);
+  });
+
+  it("reports an entry that was already deleted", async () => {
+    const { guestbook } = setup();
+    const entry = await writeEntry(guestbook);
+    await guestbook.deleteEntry({ id: entry.id, password: "1234" });
+
+    const result = await guestbook.deleteEntry({ id: entry.id, password: "1234" });
+
+    expect(result.status).toBe("not-found");
+  });
+
+  it("makes a deleted entry impossible to edit", async () => {
+    const { guestbook } = setup();
+    const entry = await writeEntry(guestbook);
+    await guestbook.deleteEntry({ id: entry.id, password: "1234" });
+
+    const result = await guestbook.editMessage({ id: entry.id, message: "x", password: "1234" });
+
+    expect(result.status).toBe("not-found");
+  });
+});
+
 describe("listing entries", () => {
   it("lists entries newest first", async () => {
     const { guestbook, clock } = setup();
