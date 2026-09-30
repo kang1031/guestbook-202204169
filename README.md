@@ -53,7 +53,7 @@ npm test
 
 1. [Vercel](https://vercel.com/new)에서 GitHub 저장소 `kang1031/guestbook-202204169`를 가져옵니다(Import).
 2. **Settings → Environment Variables**에 `DATABASE_URL`을 추가합니다. Neon 연결 문자열을 넣고 Production, Preview, Development를 모두 선택합니다. Vercel의 Neon 연동(Storage → Neon)을 쓰면 이 변수가 자동으로 추가됩니다.
-3. 운영 DB에 테이블이 없다면 로컬에서 운영 DB의 `DATABASE_URL`로 `npm run db:init`을 한 번 실행합니다.
+3. 운영 DB에 테이블이 없다면 로컬에서 한 번 실행합니다: `DATABASE_URL="<운영 DB 연결 문자열>" npm run db:init`. `.env.local`이 없어도 동작하며, 셸에서 지정한 값이 `.env.local`보다 우선합니다.
 4. 배포합니다. 이후 `master` 브랜치에 푸시할 때마다 자동으로 다시 배포됩니다.
 
 ## 구조
