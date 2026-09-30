@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { getGuestbook } from "@/lib/guestbook";
 import { formatSeoulTime } from "@/lib/format-date";
+import { EntryForm } from "./entry-form";
 
 export default async function Home() {
   // The guestbook changes on every write, so always render at request time.
@@ -20,6 +21,8 @@ export default async function Home() {
             학번 <span className="font-medium text-zinc-700 dark:text-zinc-200">202204169</span>
           </p>
         </header>
+
+        <EntryForm />
 
         <section aria-label="방명록 글 목록" className="flex flex-col gap-3">
           {entries.length === 0 ? (

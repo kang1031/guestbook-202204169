@@ -17,6 +17,86 @@ function setup() {
   return { guestbook, clock };
 }
 
+const valid = { authorName: "철수", message: "안녕하세요", password: "1234" };
+
+describe("writing an entry", () => {
+  it("adds the entry to the top of the list", async () => {
+    const { guestbook, clock } = setup();
+    await guestbook.createEntry(valid);
+    clock.advance(1);
+
+    const result = await guestbook.createEntry({ ...valid, message: "새 글" });
+
+    expect(result.status).toBe("ok");
+    const [top] = await guestbook.listEntries();
+    expect(top).toMatchObject({ authorName: "철수", message: "새 글", updatedAt: null });
+  });
+
+  it("trims the author name and message but keeps inner line breaks", async () => {
+    const { guestbook } = setup();
+
+    await guestbook.createEntry({ ...valid, authorName: "  철수  ", message: "\n 첫 줄\n둘째 줄 \n" });
+
+    const [entry] = await guestbook.listEntries();
+    expect(entry.authorName).toBe("철수");
+    expect(entry.message).toBe("첫 줄\n둘째 줄");
+  });
+
+  it("never exposes the password in what it returns", async () => {
+    const { guestbook } = setup();
+
+    const result = await guestbook.createEntry({ ...valid, password: "secret-pw" });
+    const listed = await guestbook.listEntries();
+
+    expect(JSON.stringify([result, listed])).not.toMatch(/secret-pw|scrypt|password/i);
+  });
+
+  it.each([
+    ["an empty author name", { authorName: "" }, "authorName"],
+    ["a whitespace-only author name", { authorName: "   " }, "authorName"],
+    ["a 21-character author name", { authorName: "가".repeat(21) }, "authorName"],
+    ["an empty message", { message: "" }, "message"],
+    ["a whitespace-only message", { message: " \n\t " }, "message"],
+    ["a 501-character message", { message: "a".repeat(501) }, "message"],
+    ["a 3-character password", { password: "123" }, "password"],
+    ["a 73-character password", { password: "p".repeat(73) }, "password"],
+  ] as const)("rejects %s", async (_, override, field) => {
+    const { guestbook } = setup();
+
+    const result = await guestbook.createEntry({ ...valid, ...override });
+
+    expect(result.status).toBe("invalid");
+    expect(result.status === "invalid" && Object.keys(result.errors)).toEqual([field]);
+    expect(await guestbook.listEntries()).toEqual([]);
+  });
+
+  it.each([
+    ["a 20-character author name", { authorName: "가".repeat(20) }],
+    ["a 500-character message", { message: "a".repeat(500) }],
+    ["a 4-character password", { password: "1234" }],
+    ["a 72-character password", { password: "p".repeat(72) }],
+    ["an emoji name counted as visible characters", { authorName: "👨‍👩‍👧".repeat(20) }],
+  ] as const)("accepts %s", async (_, override) => {
+    const { guestbook } = setup();
+
+    const result = await guestbook.createEntry({ ...valid, ...override });
+
+    expect(result.status).toBe("ok");
+  });
+
+  it("reports every invalid field at once", async () => {
+    const { guestbook } = setup();
+
+    const result = await guestbook.createEntry({ authorName: "", message: "", password: "" });
+
+    expect(result.status === "invalid" && Object.keys(result.errors).sort()).toEqual([
+      "authorName",
+      "message",
+      "password",
+    ]);
+  });
+});
+
 describe("listing entries", () => {
   it("lists entries newest first", async () => {
     const { guestbook, clock } = setup();

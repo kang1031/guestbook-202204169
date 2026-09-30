@@ -1,10 +1,16 @@
+import { hashPassword } from "./password";
 import type { Entry, EntryStore } from "./types";
+import { validate, type FieldErrors } from "./validation";
 
 export type CreateEntryInput = {
   authorName: string;
   message: string;
   password: string;
 };
+
+export type Invalid = { status: "invalid"; errors: FieldErrors };
+
+export type CreateEntryResult = { status: "ok"; entry: Entry } | Invalid;
 
 export function createGuestbook({
   store,
@@ -22,14 +28,18 @@ export function createGuestbook({
       );
     },
 
-    async createEntry(input: CreateEntryInput) {
+    async createEntry(input: CreateEntryInput): Promise<CreateEntryResult> {
+      const checked = validate(input);
+      if (!checked.ok) return { status: "invalid", errors: checked.errors };
+
+      const { authorName, message, password } = checked.value;
       const entry = await store.insert({
-        authorName: input.authorName,
-        message: input.message,
-        passwordHash: input.password,
+        authorName,
+        message,
+        passwordHash: await hashPassword(password),
         createdAt: now(),
       });
-      return { status: "ok" as const, entry };
+      return { status: "ok", entry };
     },
   };
 }
