@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { getGuestbook } from "@/lib/guestbook";
 import { formatSeoulTime } from "@/lib/format-date";
+import { EntryCard } from "./entry-card";
 import { EntryForm } from "./entry-form";
 
 export default async function Home() {
@@ -32,25 +33,18 @@ export default async function Home() {
           ) : (
             <ul className="flex flex-col gap-3">
               {entries.map((entry) => (
-                <li
+                <EntryCard
                   key={entry.id}
-                  className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">
-                      {entry.authorName}
-                    </span>
-                    <time
-                      dateTime={entry.createdAt.toISOString()}
-                      className="text-xs text-zinc-500 dark:text-zinc-400"
-                    >
-                      {formatSeoulTime(entry.createdAt)}
-                    </time>
-                  </div>
-                  <p className="mt-2 whitespace-pre-wrap break-words text-zinc-700 dark:text-zinc-300">
-                    {entry.message}
-                  </p>
-                </li>
+                  entry={{
+                    id: entry.id,
+                    authorName: entry.authorName,
+                    message: entry.message,
+                    createdAtIso: entry.createdAt.toISOString(),
+                    // Formatted on the server so the client renders the same text.
+                    createdAtLabel: formatSeoulTime(entry.createdAt),
+                    updatedAtLabel: entry.updatedAt && formatSeoulTime(entry.updatedAt),
+                  }}
+                />
               ))}
             </ul>
           )}

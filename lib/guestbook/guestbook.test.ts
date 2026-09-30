@@ -97,6 +97,84 @@ describe("writing an entry", () => {
   });
 });
 
+async function writeEntry(guestbook: ReturnType<typeof setup>["guestbook"], input = valid) {
+  const result = await guestbook.createEntry(input);
+  if (result.status !== "ok") throw new Error("setup entry was rejected");
+  return result.entry;
+}
+
+describe("editing a message", () => {
+  it("changes the message and marks it edited when the password matches", async () => {
+    const { guestbook, clock } = setup();
+    const entry = await writeEntry(guestbook);
+    clock.advance(5);
+
+    const result = await guestbook.editMessage({ id: entry.id, message: "고친 글", password: "1234" });
+
+    expect(result.status).toBe("ok");
+    const [edited] = await guestbook.listEntries();
+    expect(edited.message).toBe("고친 글");
+    expect(edited.createdAt).toEqual(entry.createdAt);
+    expect(edited.updatedAt).toEqual(new Date("2026-09-30T05:05:00Z"));
+  });
+
+  it("keeps the entry in its original place in the list", async () => {
+    const { guestbook, clock } = setup();
+    const older = await writeEntry(guestbook, { ...valid, message: "오래된 글" });
+    clock.advance(1);
+    await writeEntry(guestbook, { ...valid, message: "최신 글" });
+    clock.advance(1);
+
+    await guestbook.editMessage({ id: older.id, message: "오래된 글 (수정)", password: "1234" });
+
+    const entries = await guestbook.listEntries();
+    expect(entries.map((e) => e.message)).toEqual(["최신 글", "오래된 글 (수정)"]);
+  });
+
+  it("refuses a wrong password and leaves the message untouched", async () => {
+    const { guestbook } = setup();
+    const entry = await writeEntry(guestbook);
+
+    const result = await guestbook.editMessage({ id: entry.id, message: "해킹", password: "0000" });
+
+    expect(result.status).toBe("wrong-password");
+    const [unchanged] = await guestbook.listEntries();
+    expect(unchanged).toMatchObject({ message: "안녕하세요", updatedAt: null });
+  });
+
+  it("does not accept the password of another entry with the same author name", async () => {
+    const { guestbook } = setup();
+    const mine = await writeEntry(guestbook, { ...valid, password: "mine-pw" });
+    await writeEntry(guestbook, { ...valid, password: "other-pw" });
+
+    const result = await guestbook.editMessage({ id: mine.id, message: "x", password: "other-pw" });
+
+    expect(result.status).toBe("wrong-password");
+  });
+
+  it("reports an entry that no longer exists", async () => {
+    const { guestbook } = setup();
+
+    const result = await guestbook.editMessage({ id: 999, message: "x", password: "1234" });
+
+    expect(result.status).toBe("not-found");
+  });
+
+  it.each([
+    ["an empty message", ""],
+    ["a 501-character message", "a".repeat(501)],
+  ])("rejects %s", async (_, message) => {
+    const { guestbook } = setup();
+    const entry = await writeEntry(guestbook);
+
+    const result = await guestbook.editMessage({ id: entry.id, message, password: "1234" });
+
+    expect(result.status === "invalid" && Object.keys(result.errors)).toEqual(["message"]);
+    const [unchanged] = await guestbook.listEntries();
+    expect(unchanged.message).toBe("안녕하세요");
+  });
+});
+
 describe("listing entries", () => {
   it("lists entries newest first", async () => {
     const { guestbook, clock } = setup();
